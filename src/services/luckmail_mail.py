@@ -4,6 +4,7 @@ LuckMail 邮箱服务实现
 
 import logging
 import json
+import random
 import re
 import sys
 import threading
@@ -852,6 +853,7 @@ class LuckMailService(BaseEmailService):
                 reasons.append("LuckMail 已购邮箱列表为空")
             return None, reasons
 
+        random.shuffle(candidates)
         existing_in_db = self._query_existing_account_emails({self._normalize_email(c.get("email")) for c in candidates})
         for info in candidates:
             email = self._normalize_email(info.get("email"))

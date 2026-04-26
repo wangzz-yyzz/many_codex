@@ -1914,8 +1914,8 @@ class RegistrationEngine:
             stage_label="注册入口验证码(429兜底)",
             max_attempts=4,
             fetch_timeout=otp_fetch_timeout,
-            retry_wait_seconds=8.0,
-            invalid_state_retry_wait_seconds=15.0,
+            retry_wait_seconds=5.0,
+            invalid_state_retry_wait_seconds=10.0,
         )
         if not otp_ok:
             return SignupFormResult(
