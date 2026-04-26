@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-26T14:01:09Z",
-  "count": 34,
+  "updated_at": "2026-04-26T14:56:02Z",
+  "count": 36,
   "emails": {
     "dereklloyd4254fu@outlook.com": {
       "email": "dereklloyd4254fu@outlook.com",
@@ -314,32 +314,64 @@
     },
     "lauramoss2951@outlook.de": {
       "email": "lauramoss2951@outlook.de",
-      "fail_count": 1,
-      "updated_at": "2026-04-26T13:39:22Z",
-      "reason": "注册密码接口返回异常: Failed to create account. Please try again.",
+      "fail_count": 2,
+      "updated_at": "2026-04-26T14:56:01Z",
+      "reason": "重新登录时获取 Device ID 失败",
       "service_id": "tok_481db7e7a50dd544148116015fb63b64",
       "token": "tok_481db7e7a50dd544148116015fb63b64",
       "purchase_id": "1641787",
-      "source": "reuse_purchase"
+      "source": "reuse_purchase",
+      "purchase_disabled": true,
+      "purchase_disabled_at": "2026-04-26T14:56:02Z",
+      "purchase_disabled_reason": "device_id_failed"
     },
     "derekcooper9496@outlook.com": {
       "email": "derekcooper9496@outlook.com",
-      "fail_count": 1,
-      "updated_at": "2026-04-26T13:44:26Z",
-      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "fail_count": 2,
+      "updated_at": "2026-04-26T14:48:20Z",
+      "reason": "获取 Device ID 失败",
       "service_id": "tok_90ce6bc49ac02b9a8bed4d149f95c710",
       "token": "tok_90ce6bc49ac02b9a8bed4d149f95c710",
       "purchase_id": "1642425",
-      "source": "new_purchase"
+      "source": "reuse_purchase",
+      "purchase_disabled": true,
+      "purchase_disabled_at": "2026-04-26T14:48:20Z",
+      "purchase_disabled_reason": "device_id_failed"
     },
     "josephrandall7975@outlook.com": {
       "email": "josephrandall7975@outlook.com",
-      "fail_count": 1,
-      "updated_at": "2026-04-26T14:01:09Z",
-      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "fail_count": 3,
+      "updated_at": "2026-04-26T14:47:36Z",
+      "reason": "获取 Device ID 失败",
       "service_id": "tok_a394b60388da2ab754c23498ef58960a",
       "token": "tok_a394b60388da2ab754c23498ef58960a",
       "purchase_id": "1642752",
+      "source": "resume_failed",
+      "purchase_disabled": true,
+      "purchase_disabled_at": "2026-04-26T14:47:36Z",
+      "purchase_disabled_reason": "device_id_failed"
+    },
+    "cindylewis6525@outlook.com": {
+      "email": "cindylewis6525@outlook.com",
+      "fail_count": 4,
+      "updated_at": "2026-04-26T14:37:59Z",
+      "reason": "获取 Device ID 失败",
+      "service_id": "tok_29c15ac441b9787a4350b14f584a8ccc",
+      "token": "tok_29c15ac441b9787a4350b14f584a8ccc",
+      "purchase_id": "1642809",
+      "source": "reuse_purchase",
+      "purchase_disabled": true,
+      "purchase_disabled_at": "2026-04-26T14:38:00Z",
+      "purchase_disabled_reason": "device_id_failed"
+    },
+    "lisapaul2206kmv@outlook.com": {
+      "email": "lisapaul2206kmv@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T14:10:04Z",
+      "reason": "提交注册表单失败: prewarm 密码直连分支验证码校验失败；send_otp=200, detail=-",
+      "service_id": "tok_247f23a271ef85533b0e34361ed7f717",
+      "token": "tok_247f23a271ef85533b0e34361ed7f717",
+      "purchase_id": "1642834",
       "source": "new_purchase"
     }
   }

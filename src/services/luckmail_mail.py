@@ -79,6 +79,8 @@ class LuckMailService(BaseEmailService):
             "inbox_mode": "purchase",
             # 任务开始时优先复用“未在账号库且不在本地黑名单”的已购邮箱
             "reuse_existing_purchases": True,
+            "reuse_purchase_retry_attempts": 3,
+            "reuse_purchase_retry_delay": 1.0,
             "purchase_scan_pages": 5,
             "purchase_scan_page_size": 100,
             "timeout": 30,
@@ -97,6 +99,12 @@ class LuckMailService(BaseEmailService):
         self.config["preferred_domain"] = str(self.config.get("preferred_domain") or "").strip().lstrip("@")
         self.config["inbox_mode"] = self._normalize_inbox_mode(self.config.get("inbox_mode"))
         self.config["reuse_existing_purchases"] = bool(self.config.get("reuse_existing_purchases", True))
+        self.config["reuse_purchase_retry_attempts"] = max(
+            int(self.config.get("reuse_purchase_retry_attempts") or 3), 1
+        )
+        self.config["reuse_purchase_retry_delay"] = max(
+            float(self.config.get("reuse_purchase_retry_delay") or 1.0), 0.0
+        )
         self.config["purchase_scan_pages"] = max(int(self.config.get("purchase_scan_pages") or 5), 1)
         self.config["purchase_scan_page_size"] = max(int(self.config.get("purchase_scan_page_size") or 100), 1)
         self.config["poll_interval"] = float(self.config.get("poll_interval") or 3.0)
@@ -130,6 +138,8 @@ class LuckMailService(BaseEmailService):
         self._data_dir = Path(__file__).resolve().parents[2] / "data"
         self._registered_file = self._data_dir / "luckmail_registered_emails.json"
         self._failed_file = self._data_dir / "luckmail_failed_emails.json"
+        self._last_purchase_iter_error = ""
+        self._purchase_alive_cache: Dict[str, bool] = {}
 
     def _normalize_inbox_mode(self, raw: Any) -> str:
         mode = str(raw or "").strip().lower()
@@ -407,6 +417,44 @@ class LuckMailService(BaseEmailService):
         self._save_email_index(self._failed_file, failed)
         return record
 
+    def _should_disable_purchase_on_failure(self, reason: str) -> bool:
+        text = str(reason or "").strip().lower()
+        if not text:
+            return False
+        keywords = (
+            "获取 device id 失败",
+            "device id 失败",
+            "重新登录时获取 device id 失败",
+            "会话重建后获取 device id 失败",
+        )
+        return any(k in text for k in keywords)
+
+    def _disable_failed_purchase(self, email: str, purchase_id: Any, failed_record: Optional[Dict[str, Any]] = None) -> None:
+        email_norm = self._normalize_email(email)
+        purchase_id_text = str(purchase_id or "").strip()
+        if not email_norm or not purchase_id_text.isdigit():
+            return
+
+        failed = self._load_email_index(self._failed_file)
+        current = dict(failed.get(email_norm) or failed_record or {"email": email_norm})
+        try:
+            self.client.user.set_purchase_disabled(int(purchase_id_text), 1)
+            current["purchase_disabled"] = True
+            current["purchase_disabled_at"] = self._now_iso()
+            current["purchase_disabled_reason"] = "device_id_failed"
+            failed[email_norm] = current
+            self._save_email_index(self._failed_file, failed)
+            logger.info(f"LuckMail 已禁用 Device ID 失败邮箱: email={email_norm}, purchase_id={purchase_id_text}")
+        except Exception as exc:
+            current["purchase_disabled"] = False
+            current["purchase_disabled_at"] = self._now_iso()
+            current["purchase_disabled_error"] = str(exc)[:500]
+            failed[email_norm] = current
+            self._save_email_index(self._failed_file, failed)
+            logger.warning(
+                f"LuckMail 禁用 Device ID 失败邮箱失败: email={email_norm}, purchase_id={purchase_id_text}, error={exc}"
+            )
+
     def mark_registration_outcome(
         self,
         email: str,
@@ -429,6 +477,12 @@ class LuckMailService(BaseEmailService):
                 extra=context_copy,
                 prefer_failed=prefer_failed,
             )
+            if self._should_disable_purchase_on_failure(reason):
+                self._disable_failed_purchase(
+                    email=email,
+                    purchase_id=context_copy.get("purchase_id") or record.get("purchase_id"),
+                    failed_record=record,
+                )
             self._try_submit_appeal(email=email, reason=reason, context=context_copy, failed_record=record)
 
     def _resolve_order_id_by_order_no(self, order_no: str, max_pages: int = 3, page_size: int = 50) -> Optional[int]:
@@ -616,6 +670,7 @@ class LuckMailService(BaseEmailService):
             return set()
 
     def _iter_purchase_items(self, scan_pages: int, page_size: int):
+        self._last_purchase_iter_error = ""
         for page in range(1, scan_pages + 1):
             try:
                 page_result = self.client.user.get_purchases(
@@ -624,6 +679,7 @@ class LuckMailService(BaseEmailService):
                     user_disabled=0,
                 )
             except Exception as exc:
+                self._last_purchase_iter_error = str(exc).strip()
                 logger.warning(f"LuckMail 拉取已购邮箱失败: page={page}, error={exc}")
                 break
 
@@ -649,6 +705,9 @@ class LuckMailService(BaseEmailService):
         token = str(self._extract_field(item, "token") or "").strip()
         purchase_id_raw = self._extract_field(item, "id", "purchase_id")
         purchase_id = str(purchase_id_raw).strip() if purchase_id_raw not in (None, "") else ""
+        status_raw = self._extract_field(item, "status")
+        user_disabled_raw = self._extract_field(item, "user_disabled")
+        warranty_until = str(self._extract_field(item, "warranty_until") or "").strip()
 
         if not email or not token:
             return None
@@ -665,6 +724,9 @@ class LuckMailService(BaseEmailService):
             "email": email,
             "token": token,
             "purchase_id": purchase_id or None,
+            "status": int(status_raw or 0) if status_raw not in (None, "") else 0,
+            "user_disabled": int(user_disabled_raw or 0) if user_disabled_raw not in (None, "") else 0,
+            "warranty_until": warranty_until,
             "inbox_mode": "purchase",
             "project_code": project_code,
             "email_type": email_type,
@@ -674,22 +736,58 @@ class LuckMailService(BaseEmailService):
             "source": source,
         }
 
+    def _is_purchase_token_alive(self, token: str) -> bool:
+        token_text = str(token or "").strip()
+        if not token_text:
+            return False
+        if token_text in self._purchase_alive_cache:
+            return self._purchase_alive_cache[token_text]
+        try:
+            result = self.client.user.check_token_alive(token_text)
+            alive = bool(self._extract_field(result, "alive"))
+        except Exception as exc:
+            logger.warning(f"LuckMail 已购邮箱 Token 测活失败: token={token_text}, error={exc}")
+            alive = False
+        self._purchase_alive_cache[token_text] = alive
+        return alive
+
+    def _summarize_reuse_failure_reasons(self, reasons: List[str], max_items: int = 4) -> str:
+        cleaned: List[str] = []
+        seen: Set[str] = set()
+        for reason in reasons:
+            text = str(reason or "").strip()
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            cleaned.append(text)
+        if not cleaned:
+            return "未发现可复用的已购邮箱"
+        summary = "；".join(cleaned[:max_items])
+        if len(cleaned) > max_items:
+            summary += f"；其余{len(cleaned) - max_items}项已省略"
+        return summary
+
     def _pick_reusable_purchase_inbox(
         self,
         project_code: str,
         email_type: str,
         preferred_domain: str,
-    ) -> Optional[Dict[str, Any]]:
+        excluded_emails: Optional[Set[str]] = None,
+    ) -> tuple[Optional[Dict[str, Any]], List[str]]:
         registered = self._load_email_index(self._registered_file)
         failed = self._load_email_index(self._failed_file)
         if self._reconcile_failed_over_registered(registered, failed):
             self._save_email_index(self._registered_file, registered)
 
         candidates: List[Dict[str, Any]] = []
+        reasons: List[str] = []
+        excluded = {self._normalize_email(e) for e in (excluded_emails or set()) if self._normalize_email(e)}
+        scanned_items = 0
         for item in self._iter_purchase_items(
             scan_pages=int(self.config.get("purchase_scan_pages") or 5),
             page_size=int(self.config.get("purchase_scan_page_size") or 100),
         ):
+            scanned_items += 1
             info = self._build_purchase_order_info(
                 item=item,
                 project_code=project_code,
@@ -698,17 +796,38 @@ class LuckMailService(BaseEmailService):
                 source="reuse_purchase",
             )
             if not info:
+                reasons.append("存在已购邮箱记录缺少 email/token 或域名不匹配")
                 continue
             email = self._normalize_email(info.get("email"))
             if not email:
+                reasons.append("存在已购邮箱记录邮箱字段为空")
+                continue
+            purchase_id = str(info.get("purchase_id") or "").strip()
+            if not purchase_id.isdigit():
+                reasons.append(f"{email}: 缺少有效 purchase_id，疑似非已购邮箱记录")
+                continue
+            if int(info.get("status") or 0) != 1:
+                reasons.append(f"{email}: 已购邮箱状态异常(status={info.get('status')})")
+                continue
+            if int(info.get("user_disabled") or 0) != 0:
+                reasons.append(f"{email}: 已购邮箱已被禁用(user_disabled={info.get('user_disabled')})")
+                continue
+            token = str(info.get("token") or "").strip()
+            if not self._is_purchase_token_alive(token):
+                reasons.append(f"{email}: Token 活性检查失败，疑似不可用/非正常已购邮箱")
+                continue
+            if email in excluded:
+                reasons.append(f"{email}: 本轮已尝试过，跳过避免重复选择")
                 continue
             if email in registered:
+                reasons.append(f"{email}: 已在本地注册名单中")
                 continue
             if email in failed:
                 failed_meta = failed.get(email) or {}
                 failed_reason = str(failed_meta.get("reason") or "")
                 if not self._is_resumable_failure_reason(failed_reason):
-                    continue
+                    reason_summary = failed_reason[:120] if failed_reason else "历史失败原因不可恢复"
+                    reasons.append(f"{email}: 历史失败不可恢复，但本轮允许继续尝试({reason_summary})")
 
                 resume_password = str(
                     failed_meta.get("password")
@@ -717,15 +836,21 @@ class LuckMailService(BaseEmailService):
                 ).strip()
                 if not resume_password:
                     resume_password = self._recover_password_from_recent_task_logs(email)
-                if not resume_password:
+                if not resume_password and self._is_resumable_failure_reason(failed_reason):
+                    reasons.append(f"{email}: 历史失败可恢复，但缺少密码无法重试")
                     continue
 
-                info["resume_password"] = resume_password
-                info["source"] = "resume_failed"
+                if resume_password:
+                    info["resume_password"] = resume_password
+                    info["source"] = "resume_failed"
             candidates.append(info)
 
         if not candidates:
-            return None
+            if self._last_purchase_iter_error:
+                reasons.append(f"拉取已购邮箱列表失败: {self._last_purchase_iter_error[:160]}")
+            elif scanned_items == 0:
+                reasons.append("LuckMail 已购邮箱列表为空")
+            return None, reasons
 
         existing_in_db = self._query_existing_account_emails({self._normalize_email(c.get("email")) for c in candidates})
         for info in candidates:
@@ -739,9 +864,11 @@ class LuckMailService(BaseEmailService):
                         "purchase_id": info.get("purchase_id"),
                     },
                 )
+                reasons.append(f"{email}: 已存在于账号库，已自动标记为已注册")
                 continue
-            return info
-        return None
+            return info, reasons
+        reasons.append("候选已购邮箱均已存在于账号库")
+        return None, reasons
 
     def _create_order_inbox(
         self,
@@ -882,19 +1009,53 @@ class LuckMailService(BaseEmailService):
             )
         else:
             if bool(self.config.get("reuse_existing_purchases", True)):
-                reused = self._pick_reusable_purchase_inbox(
-                    project_code=project_code,
-                    email_type=email_type,
-                    preferred_domain=preferred_domain,
-                )
-                if reused:
-                    order_info = reused
-                else:
+                reuse_attempts = int(self.config.get("reuse_purchase_retry_attempts") or 3)
+                reuse_delay = float(self.config.get("reuse_purchase_retry_delay") or 1.0)
+                reuse_reports: List[str] = []
+                attempted_reuse_emails: Set[str] = set()
+                order_info = None
+                for attempt in range(1, reuse_attempts + 1):
+                    reused, attempt_reasons = self._pick_reusable_purchase_inbox(
+                        project_code=project_code,
+                        email_type=email_type,
+                        preferred_domain=preferred_domain,
+                        excluded_emails=attempted_reuse_emails,
+                    )
+                    if reused:
+                        selected_email = self._normalize_email(reused.get("email"))
+                        if selected_email:
+                            attempted_reuse_emails.add(selected_email)
+                        reused["reuse_purchase_attempts_used"] = attempt
+                        reused["reuse_purchase_selected_email"] = selected_email
+                        if reuse_reports:
+                            reused["reuse_purchase_retry_reports"] = reuse_reports
+                        logger.info(
+                            "LuckMail 复用已购邮箱命中: attempt=%s/%s, email=%s, source=%s",
+                            attempt,
+                            reuse_attempts,
+                            selected_email or "-",
+                            str(reused.get("source") or "-"),
+                        )
+                        order_info = reused
+                        break
+                    summary = self._summarize_reuse_failure_reasons(attempt_reasons)
+                    reuse_reports.append(f"第{attempt}次复用失败: {summary}")
+                    logger.warning(
+                        "LuckMail 复用已购邮箱失败: attempt=%s/%s, reason=%s",
+                        attempt,
+                        reuse_attempts,
+                        summary,
+                    )
+                    if attempt < reuse_attempts and reuse_delay > 0:
+                        time.sleep(reuse_delay)
+                if order_info is None:
                     order_info = self._create_purchase_inbox(
                         project_code=project_code,
                         email_type=email_type,
                         preferred_domain=preferred_domain,
                     )
+                    order_info["reuse_purchase_attempts_used"] = reuse_attempts
+                    order_info["reuse_purchase_retry_reports"] = reuse_reports
             else:
                 order_info = self._create_purchase_inbox(
                     project_code=project_code,

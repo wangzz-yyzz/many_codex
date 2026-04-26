@@ -10,10 +10,21 @@ import threading
 import time
 import uuid
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VENV_PYTHON = ROOT / ".venv" / "bin" / "python"
+
+
+def _resolve_project_venv_python() -> Path:
+    candidates = [ROOT / ".venv" / "bin" / "python"]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+VENV_PYTHON = _resolve_project_venv_python()
 
 
 def _load_project_env() -> None:
@@ -49,6 +60,15 @@ def _detect_project_playwright_browsers() -> Path | None:
     return None
 
 
+def _is_cross_platform_browser_path(path_value: str) -> bool:
+    value = str(path_value or "").strip()
+    if not value:
+        return False
+    if sys.platform.startswith("win"):
+        return value.startswith("/")
+    return bool(re.match(r"^[A-Za-z]:[\\/]", value)) or value.startswith("\\\\")
+
+
 def _prepare_runtime_env() -> None:
     _load_project_env()
 
@@ -64,6 +84,11 @@ def _prepare_runtime_env() -> None:
         os.environ["PLAYWRIGHT_HEADLESS"] = "true"
         os.environ["REGISTER_HEADLESS"] = "true"
 
+    configured_browsers_path = str(os.environ.get("PLAYWRIGHT_BROWSERS_PATH") or "").strip()
+    if configured_browsers_path and _is_cross_platform_browser_path(configured_browsers_path):
+        # Ignore a path copied from another OS so local auto-detection can recover.
+        os.environ.pop("PLAYWRIGHT_BROWSERS_PATH", None)
+
     local_browsers = _detect_project_playwright_browsers()
     if local_browsers is not None:
         os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(local_browsers))
@@ -71,6 +96,8 @@ def _prepare_runtime_env() -> None:
 
 def _maybe_reexec_into_project_venv() -> None:
     """Re-run the script inside the project virtualenv when available."""
+    if sys.platform.startswith("win"):
+        return
     if os.environ.get("RUN_REG_VENV_REEXEC") == "1":
         return
     if not VENV_PYTHON.exists():

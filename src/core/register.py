@@ -1459,6 +1459,9 @@ class RegistrationEngine:
             purchase_id = str(self.email_info.get("purchase_id") or "").strip()
             order_no = str(self.email_info.get("order_no") or "").strip()
             preferred_domain = str(self.email_info.get("preferred_domain") or "").strip()
+            reuse_attempts_used = int(self.email_info.get("reuse_purchase_attempts_used") or 0)
+            reuse_retry_reports = self.email_info.get("reuse_purchase_retry_reports") or []
+            reuse_selected_email = str(self.email_info.get("reuse_purchase_selected_email") or "").strip()
             if inbox_mode or source:
                 self._log(
                     "邮箱分支: "
@@ -1470,10 +1473,20 @@ class RegistrationEngine:
                 )
                 if source == "reuse_purchase":
                     self._log("邮箱分支说明: 本次命中 LuckMail 已购邮箱复用分支")
+                    if reuse_selected_email:
+                        self._log(f"邮箱复用命中: 本轮选中已购邮箱 {reuse_selected_email}")
                 elif source == "resume_failed":
                     self._log("邮箱分支说明: 本次命中 LuckMail 失败邮箱恢复分支")
+                    if reuse_selected_email:
+                        self._log(f"邮箱复用命中: 本轮恢复历史邮箱 {reuse_selected_email}")
                 elif source == "new_purchase":
                     self._log("邮箱分支说明: 本次未复用到已购邮箱，改走新购邮箱分支")
+                    if reuse_attempts_used > 0:
+                        self._log(f"邮箱复用重试: 已尝试复用已购邮箱 {reuse_attempts_used} 次")
+                    if isinstance(reuse_retry_reports, list):
+                        for report in reuse_retry_reports[:3]:
+                            if report:
+                                self._log(f"邮箱复用失败原因: {str(report)[:300]}")
                 elif source == "new_order":
                     self._log("邮箱分支说明: 本次走 LuckMail 新建订单分支")
 
@@ -1860,53 +1873,31 @@ class RegistrationEngine:
         命中 signup 429 时的兜底：
         部分场景服务端已经实际发送验证码，只是返回层被风控页覆盖。
         """
-        probe_attempts = 3
-        probe_wait_seconds = 5
-        otp_fetch_timeout = 45
+        otp_fetch_timeout = 75
         current_did = str(self.device_id or self.session.cookies.get("oai-did") or "").strip()
 
         self._log(
             "检测到 signup 429，开始按“偶发可恢复”场景重试探测邮箱验证码步骤...",
             "warning",
         )
-        send_probe_ok = False
-        for probe_attempt in range(1, probe_attempts + 1):
+        self._log("signup 429 发信探测: 只执行 1 次 send_otp，后续不再重复发码", "warning")
+        if current_did:
+            self._refresh_oauth_context(current_did)
+            refreshed = self._check_sentinel(current_did)
+            if refreshed:
+                self._log("signup 429 发信探测: Sentinel token 刷新成功", "warning")
+
+        send_probe_ok = self._send_verification_code(referer="https://auth.openai.com/email-verification")
+        probe_detail = str(self._last_send_otp_error_detail or "unknown").strip()
+        if send_probe_ok:
             self._log(
-                f"signup 429 发信探测第 {probe_attempt}/{probe_attempts} 次: 先重新预热 auth 会话，再尝试 send_otp",
+                "signup 429 发信探测成功: send_otp=200，后续仅等待新邮件并多次校验，不再重发验证码",
                 "warning",
             )
-            if current_did:
-                self._refresh_oauth_context(current_did)
-                refreshed = self._check_sentinel(current_did)
-                if refreshed:
-                    self._log("signup 429 发信探测: Sentinel token 刷新成功", "warning")
-
-            send_probe_ok = self._send_verification_code(referer="https://auth.openai.com/email-verification")
-            probe_detail = str(self._last_send_otp_error_detail or "unknown").strip()
-            if send_probe_ok:
-                self._log(
-                    f"signup 429 发信探测第 {probe_attempt}/{probe_attempts} 次成功: send_otp=200，开始等待邮箱验证码",
-                    "warning",
-                )
-                break
-
-            self._log(
-                "signup 429 探测未确认发信："
-                f"attempt={probe_attempt}/{probe_attempts}, "
-                f"send_otp={self._last_send_otp_status_code or '-'}, detail={probe_detail or '-'}",
-                "warning",
-            )
-            if probe_attempt < probe_attempts:
-                self._log(
-                    f"signup 429 发信探测将在 {probe_wait_seconds}s 后重试，给会话恢复一点时间...",
-                    "warning",
-                )
-                self._sleep_interruptible(probe_wait_seconds)
 
         if not send_probe_ok:
-            probe_detail = str(self._last_send_otp_error_detail or "unknown").strip()
             if self._last_signup_rate_limit_session_ended:
-                self._log("signup 429 多轮探测后仍提示会话结束，尝试彻底重建 OAuth 会话并重新递邮箱...", "warning")
+                self._log("signup 429 单轮探测后仍提示会话结束，尝试彻底重建 OAuth 会话并重新递邮箱...", "warning")
                 reauth_result = self._restart_signup_after_session_end()
                 if reauth_result.success:
                     self._log("signup 429 会话重建成功，已重新进入有效注册状态", "warning")
@@ -1914,15 +1905,17 @@ class RegistrationEngine:
             return SignupFormResult(
                 success=False,
                 error_message=(
-                    "HTTP 429，但多轮发信探测仍未确认已进入邮箱验证码步骤；"
+                    "HTTP 429，且单轮发信探测未确认已进入邮箱验证码步骤；"
                     f"send_otp={self._last_send_otp_status_code or '-'}, detail={probe_detail or '-'}"
                 ),
             )
 
         otp_ok = self._verify_email_otp_with_retry(
             stage_label="注册入口验证码(429兜底)",
-            max_attempts=2,
+            max_attempts=4,
             fetch_timeout=otp_fetch_timeout,
+            retry_wait_seconds=8.0,
+            invalid_state_retry_wait_seconds=15.0,
         )
         if not otp_ok:
             return SignupFormResult(
@@ -1988,6 +1981,8 @@ class RegistrationEngine:
             stage_label="注册入口验证码(prewarm直连)",
             max_attempts=2,
             fetch_timeout=45,
+            retry_wait_seconds=6.0,
+            invalid_state_retry_wait_seconds=12.0,
         )
         if not otp_ok:
             return SignupFormResult(
@@ -4038,6 +4033,8 @@ class RegistrationEngine:
         max_attempts: int = 3,
         fetch_timeout: Optional[int] = None,
         attempted_codes: Optional[set[str]] = None,
+        retry_wait_seconds: float = 2.0,
+        invalid_state_retry_wait_seconds: Optional[float] = None,
     ) -> bool:
         """
         获取并校验验证码（带重试）。
@@ -4047,6 +4044,11 @@ class RegistrationEngine:
         self._raise_if_cancelled(f"任务已取消，停止{stage_label}校验")
         self._last_validate_otp_continue_url = None
         self._last_validate_otp_workspace_id = None
+        base_wait_seconds = max(float(retry_wait_seconds or 0.0), 0.0)
+        invalid_state_wait_seconds = max(
+            float(invalid_state_retry_wait_seconds if invalid_state_retry_wait_seconds is not None else base_wait_seconds),
+            0.0,
+        )
         if attempted_codes is None:
             attempted_codes = set()
         for attempt in range(1, max_attempts + 1):
@@ -4062,7 +4064,7 @@ class RegistrationEngine:
                         f"{stage_label}第 {attempt}/{max_attempts} 次未取到验证码，稍后重试...",
                         "warning",
                     )
-                    self._sleep_interruptible(2)
+                    self._sleep_interruptible(base_wait_seconds)
                     continue
                 return False
 
@@ -4080,7 +4082,7 @@ class RegistrationEngine:
                     if self._validate_verification_code(code):
                         return True
                     if attempt < max_attempts:
-                        self._sleep_interruptible(2)
+                        self._sleep_interruptible(base_wait_seconds)
                         continue
                     return False
 
@@ -4089,7 +4091,7 @@ class RegistrationEngine:
                         f"{stage_label}第 {attempt}/{max_attempts} 次命中重复验证码 {code}，等待新邮件...",
                         "warning",
                     )
-                    self._sleep_interruptible(2)
+                    self._sleep_interruptible(base_wait_seconds)
                     continue
                 return False
 
@@ -4107,13 +4109,21 @@ class RegistrationEngine:
                 return False
 
             if attempt < max_attempts:
+                detail_text = str(
+                    self._last_otp_validation_error_detail or self._last_otp_validation_outcome or "unknown"
+                )
+                wait_seconds = (
+                    invalid_state_wait_seconds
+                    if "invalid_state" in detail_text.lower()
+                    else base_wait_seconds
+                )
                 self._log(
                     f"{stage_label}第 {attempt}/{max_attempts} 次校验未通过，"
-                    f"detail={self._last_otp_validation_error_detail or self._last_otp_validation_outcome or 'unknown'}，"
-                    "疑似旧验证码，自动重试下一封...",
+                    f"detail={detail_text}，"
+                    f"疑似旧验证码，等待 {wait_seconds:g} 秒后自动重试下一封...",
                     "warning",
                 )
-                self._sleep_interruptible(2)
+                self._sleep_interruptible(wait_seconds)
 
         return False
 
