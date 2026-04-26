@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # 全局线程池（支持最多 50 个并发注册任务）
 _executor = ThreadPoolExecutor(max_workers=50, thread_name_prefix="reg_worker")
+_executor_shutdown = False
 
 # 全局元锁：保护所有 defaultdict 的首次 key 创建（避免多线程竞态）
 _meta_lock = threading.Lock()
@@ -662,3 +663,17 @@ class TaskManager:
 
 # 全局实例
 task_manager = TaskManager()
+
+
+def shutdown_task_executor(wait: bool = False) -> None:
+    """关闭全局任务线程池，避免进程退出时被后台线程阻塞。"""
+    global _executor_shutdown
+    if _executor_shutdown:
+        return
+    try:
+        _executor.shutdown(wait=wait, cancel_futures=True)
+        logger.info("任务线程池已关闭")
+    except Exception as exc:
+        logger.warning("关闭任务线程池失败: %s", exc)
+    finally:
+        _executor_shutdown = True

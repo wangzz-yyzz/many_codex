@@ -764,6 +764,13 @@ def _normalize_email_service_config_for_session_bootstrap(
     elif service_type == EmailServiceType.YYDS_MAIL:
         if "domain" in normalized and "default_domain" not in normalized:
             normalized["default_domain"] = normalized.pop("domain")
+    elif service_type in (EmailServiceType.CATCHALL_POP3, EmailServiceType.CATCHALL_IMAP):
+        if "domain" in normalized and "catchall_domain" not in normalized:
+            normalized["catchall_domain"] = normalized.pop("domain")
+        if "default_domain" in normalized and "catchall_domain" not in normalized:
+            normalized["catchall_domain"] = normalized.pop("default_domain")
+        if "pop3_host" in normalized and "pop_host" not in normalized:
+            normalized["pop_host"] = normalized.pop("pop3_host")
     elif service_type in (EmailServiceType.TEMP_MAIL, EmailServiceType.FREEMAIL):
         if "default_domain" in normalized and "domain" not in normalized:
             normalized["domain"] = normalized.pop("default_domain")

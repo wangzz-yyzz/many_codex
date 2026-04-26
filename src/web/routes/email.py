@@ -1,4 +1,4 @@
-﻿"""
+"""
 邮箱服务配置 API 路由
 """
 
@@ -109,6 +109,14 @@ def normalize_email_service_config(service_type: str, config: Optional[Dict[str,
     if service_type == "cloudmail" and normalized.get("api_key") and not normalized.get("admin_password"):
         normalized["admin_password"] = normalized.pop("api_key")
 
+    if service_type in {"catchall_pop3", "catchall_imap"}:
+        if normalized.get("domain") and not normalized.get("catchall_domain"):
+            normalized["catchall_domain"] = normalized.pop("domain")
+        if normalized.get("default_domain") and not normalized.get("catchall_domain"):
+            normalized["catchall_domain"] = normalized.pop("default_domain")
+        if normalized.get("pop3_host") and not normalized.get("pop_host"):
+            normalized["pop_host"] = normalized.pop("pop3_host")
+
     return normalized
 
 
@@ -202,6 +210,8 @@ async def get_email_services_stats():
             'duck_mail_count': 0,
             'freemail_count': 0,
             'imap_mail_count': 0,
+            'catchall_pop3_count': 0,
+            'catchall_imap_count': 0,
             'cloudmail_count': 0,
             'luckmail_count': 0,
             'tempmail_available': tempmail_enabled or yyds_enabled,
@@ -226,6 +236,10 @@ async def get_email_services_stats():
                 stats['freemail_count'] = count
             elif service_type == 'imap_mail':
                 stats['imap_mail_count'] = count
+            elif service_type == 'catchall_pop3':
+                stats['catchall_pop3_count'] = count
+            elif service_type == 'catchall_imap':
+                stats['catchall_imap_count'] = count
             elif service_type == 'cloudmail':
                 stats['cloudmail_count'] = count
             elif service_type == 'luckmail':
@@ -323,6 +337,34 @@ async def get_service_types():
                     {"name": "domain", "label": "邮箱域名", "required": True, "placeholder": "example.com"},
                     {"name": "enable_prefix", "label": "启用前缀", "required": False, "default": True},
                     {"name": "timeout", "label": "超时时间", "required": False, "default": 30},
+                ]
+            },
+            {
+                "value": "catchall_pop3",
+                "label": "Catch-All POP3",
+                "description": "固定 POP3 收件箱 + 随机别名邮箱，适合 163/CF 转发场景，推荐优先使用",
+                "config_fields": [
+                    {"name": "pop_host", "label": "POP3 服务器", "required": True, "placeholder": "pop.163.com"},
+                    {"name": "pop_port", "label": "端口", "required": False, "default": 995},
+                    {"name": "pop_use_ssl", "label": "使用 SSL", "required": False, "default": True},
+                    {"name": "email", "label": "POP3 邮箱地址", "required": True, "placeholder": "your163@163.com"},
+                    {"name": "password", "label": "密码/授权码", "required": True, "secret": True},
+                    {"name": "catchall_domain", "label": "Catch-all 域名", "required": True, "default": "wzz28043.qzz.io"},
+                    {"name": "local_part_length", "label": "随机前缀长度", "required": False, "default": 10},
+                ]
+            },
+            {
+                "value": "catchall_imap",
+                "label": "Catch-All IMAP",
+                "description": "固定 IMAP 收件箱 + 随机别名邮箱，例如 xxxx@wzz28043.qzz.io",
+                "config_fields": [
+                    {"name": "host", "label": "IMAP 服务器", "required": True, "placeholder": "imap.163.com"},
+                    {"name": "port", "label": "端口", "required": False, "default": 993},
+                    {"name": "use_ssl", "label": "使用 SSL", "required": False, "default": True},
+                    {"name": "email", "label": "IMAP 邮箱地址", "required": True, "placeholder": "your163@163.com"},
+                    {"name": "password", "label": "密码/授权码", "required": True, "secret": True},
+                    {"name": "catchall_domain", "label": "Catch-all 域名", "required": True, "default": "wzz28043.qzz.io"},
+                    {"name": "local_part_length", "label": "随机前缀长度", "required": False, "default": 10},
                 ]
             },
             {

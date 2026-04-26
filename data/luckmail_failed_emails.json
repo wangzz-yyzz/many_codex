@@ -1,0 +1,296 @@
+{
+  "updated_at": "2026-04-26T12:42:26Z",
+  "count": 29,
+  "emails": {
+    "dereklloyd4254fu@outlook.com": {
+      "email": "dereklloyd4254fu@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T08:34:33Z",
+      "reason": "提交注册表单失败: HTTP 429: <html>\n  <head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <style global>\n      body {\n        font-family: Arial, Helvetica, sans-serif;\n      }\n      .container {",
+      "service_id": "tok_66b736dca06f0e7b08d5478cf080ebd2",
+      "token": "tok_66b736dca06f0e7b08d5478cf080ebd2",
+      "purchase_id": "1629303",
+      "source": "reuse_purchase"
+    },
+    "monicaosborn7834@outlook.com": {
+      "email": "monicaosborn7834@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T08:37:40Z",
+      "reason": "提交注册表单失败: HTTP 429: <html>\n  <head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <style global>\n      body {\n        font-family: Arial, Helvetica, sans-serif;\n      }\n      .container {",
+      "service_id": "tok_fd6c59d549985afcda301ef845d80c98",
+      "token": "tok_fd6c59d549985afcda301ef845d80c98",
+      "purchase_id": "1628964",
+      "source": "reuse_purchase"
+    },
+    "nataliemoore9164@outlook.com": {
+      "email": "nataliemoore9164@outlook.com",
+      "fail_count": 4,
+      "updated_at": "2026-04-26T09:23:05Z",
+      "reason": "HTTP 400: registration_disallowed",
+      "service_id": "tok_c219e1c8142874613d8461081ef99f1c",
+      "token": "tok_c219e1c8142874613d8461081ef99f1c",
+      "purchase_id": "1557411",
+      "source": "resume_failed"
+    },
+    "stevenacosta2186@outlook.com": {
+      "email": "stevenacosta2186@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T09:24:54Z",
+      "reason": "命中 add-phone 分支，主链路停止并交给 anyauto 回退继续处理",
+      "service_id": "tok_bf9c2021a3f7b64a7cf767ed3077d1d3",
+      "token": "tok_bf9c2021a3f7b64a7cf767ed3077d1d3",
+      "purchase_id": "1556647",
+      "source": "reuse_purchase"
+    },
+    "austinconrad9162@outlook.com": {
+      "email": "austinconrad9162@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T09:30:42Z",
+      "reason": "提交注册表单失败: HTTP 429 且注册入口验证码兜底校验失败",
+      "service_id": "tok_f06bff454f29f89491e6a2f0551a957f",
+      "token": "tok_f06bff454f29f89491e6a2f0551a957f",
+      "purchase_id": "1556623",
+      "source": "reuse_purchase"
+    },
+    "elizabethpowell7802@outlook.com": {
+      "email": "elizabethpowell7802@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T09:38:02Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_12194a78809ab9cfa4500690e50745a0",
+      "token": "tok_12194a78809ab9cfa4500690e50745a0",
+      "purchase_id": "1556600",
+      "source": "reuse_purchase"
+    },
+    "jeffreysanchez2699@outlook.com": {
+      "email": "jeffreysanchez2699@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T09:39:52Z",
+      "reason": "提交注册表单失败: HTTP 429 且注册入口验证码兜底校验失败",
+      "service_id": "tok_7e8e7f982f4ef1caf2d1902d5342cc8d",
+      "token": "tok_7e8e7f982f4ef1caf2d1902d5342cc8d",
+      "purchase_id": "1556575",
+      "source": "reuse_purchase"
+    },
+    "victoriagarrison6118@outlook.com": {
+      "email": "victoriagarrison6118@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T09:40:27Z",
+      "reason": "提交注册表单失败: HTTP 429 且注册入口验证码兜底校验失败",
+      "service_id": "tok_712200037271cd29b63a607eab552edf",
+      "token": "tok_712200037271cd29b63a607eab552edf",
+      "purchase_id": "1556523",
+      "source": "reuse_purchase"
+    },
+    "patricialewis3404@outlook.com": {
+      "email": "patricialewis3404@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T10:23:33Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_7c453f7f38d48bfff334da87bb4a91e6",
+      "token": "tok_7c453f7f38d48bfff334da87bb4a91e6",
+      "purchase_id": "1556457",
+      "source": "reuse_purchase"
+    },
+    "christinemiller2532@outlook.com": {
+      "email": "christinemiller2532@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T10:25:59Z",
+      "reason": "提交注册表单失败: HTTP 429，但当前会话未能确认已进入邮箱验证码步骤；send_otp=400, detail=HTTP 400: invalid_auth_step",
+      "service_id": "tok_2feaae1d28ebaa80abfa637cd8bbf1c9",
+      "token": "tok_2feaae1d28ebaa80abfa637cd8bbf1c9",
+      "purchase_id": "1556142",
+      "source": "reuse_purchase"
+    },
+    "carlcooper9941@outlook.com": {
+      "email": "carlcooper9941@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T10:27:04Z",
+      "reason": "提交注册表单失败: HTTP 429，但当前会话未能确认已进入邮箱验证码步骤；send_otp=400, detail=HTTP 400: invalid_auth_step",
+      "service_id": "tok_0ae84bbbd937ab133f4ccb4fcdca5031",
+      "token": "tok_0ae84bbbd937ab133f4ccb4fcdca5031",
+      "purchase_id": "1555993",
+      "source": "reuse_purchase"
+    },
+    "ivpiw3330177@outlook.com": {
+      "email": "ivpiw3330177@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:23:14Z",
+      "reason": "HTTP 400: registration_disallowed",
+      "service_id": "tok_203134e308a8626adbcd11610e6a403e",
+      "token": "tok_203134e308a8626adbcd11610e6a403e",
+      "purchase_id": "1555939",
+      "source": "reuse_purchase"
+    },
+    "chadwright5251@outlook.com": {
+      "email": "chadwright5251@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:30:50Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_ca06fa2088ac66aaf4511465cc916782",
+      "token": "tok_ca06fa2088ac66aaf4511465cc916782",
+      "purchase_id": "1555413",
+      "source": "reuse_purchase"
+    },
+    "d.r.ea.m.sa.n.y.e@googlemail.com": {
+      "email": "d.r.ea.m.sa.n.y.e@googlemail.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:34:49Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_85c06a7d996486cf4a3ac25f7e98d445",
+      "token": "tok_85c06a7d996486cf4a3ac25f7e98d445",
+      "purchase_id": "1554945",
+      "source": "reuse_purchase"
+    },
+    "ericpowell3518@outlook.de": {
+      "email": "ericpowell3518@outlook.de",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:38:04Z",
+      "reason": "提交注册表单失败: 注册密码接口返回异常: Failed to create account. Please try again.",
+      "service_id": "tok_cf63f19d9112e3951791cc1bd1e3c188",
+      "token": "tok_cf63f19d9112e3951791cc1bd1e3c188",
+      "purchase_id": "1554696",
+      "source": "reuse_purchase"
+    },
+    "geraldsanchez2838qael@outlook.it": {
+      "email": "geraldsanchez2838qael@outlook.it",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:42:18Z",
+      "reason": "提交注册表单失败: 注册密码接口返回异常: Failed to create account. Please try again.",
+      "service_id": "tok_81960a4c15abb12b274a9b223377113d",
+      "token": "tok_81960a4c15abb12b274a9b223377113d",
+      "purchase_id": "1509297",
+      "source": "reuse_purchase"
+    },
+    "jorgeperez8673q6@outlook.cz": {
+      "email": "jorgeperez8673q6@outlook.cz",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:45:18Z",
+      "reason": "提交注册表单失败: 注册密码接口返回异常: Failed to create account. Please try again.",
+      "service_id": "tok_9edd7777a873430bcfcc5d8a13b3df6f",
+      "token": "tok_9edd7777a873430bcfcc5d8a13b3df6f",
+      "purchase_id": "1508344",
+      "source": "reuse_purchase"
+    },
+    "10e2a451@caijiuduolian.bbroot.com": {
+      "email": "10e2a451@caijiuduolian.bbroot.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:50:47Z",
+      "reason": "提交注册表单失败: 注册密码接口返回异常: Invalid session. Please start over.",
+      "service_id": "tok_1f98320b99a1b767c763b26b076e1b95",
+      "token": "tok_1f98320b99a1b767c763b26b076e1b95",
+      "purchase_id": "1508341",
+      "source": "reuse_purchase"
+    },
+    "ronaldpayne2402@outlook.com": {
+      "email": "ronaldpayne2402@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:54:16Z",
+      "reason": "提交注册表单失败: 注册密码接口返回异常: Invalid session. Please start over.",
+      "service_id": "tok_a888d6faa10ad1a78adfef17d1080e40",
+      "token": "tok_a888d6faa10ad1a78adfef17d1080e40",
+      "purchase_id": "1508303",
+      "source": "reuse_purchase"
+    },
+    "reginaldmarks4948@outlook.com": {
+      "email": "reginaldmarks4948@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:57:38Z",
+      "reason": "cannot access local variable 'current_sen_token' where it is not associated with a value",
+      "service_id": "tok_6cebba88d1c999b040700d0bb7415176",
+      "token": "tok_6cebba88d1c999b040700d0bb7415176",
+      "purchase_id": "1508253",
+      "source": "reuse_purchase"
+    },
+    "anthonygarza4106@outlook.com": {
+      "email": "anthonygarza4106@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T11:59:12Z",
+      "reason": "获取 Device ID 失败",
+      "service_id": "tok_e192bfde4c5ca72190616a8ef07aee7e",
+      "token": "tok_e192bfde4c5ca72190616a8ef07aee7e",
+      "purchase_id": "1508108",
+      "source": "reuse_purchase"
+    },
+    "joshuamalone3236@outlook.com": {
+      "email": "joshuamalone3236@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:02:16Z",
+      "reason": "获取 Device ID 失败",
+      "service_id": "tok_71511126fddf491d3e16626b0d94641c",
+      "token": "tok_71511126fddf491d3e16626b0d94641c",
+      "purchase_id": "1507963",
+      "source": "reuse_purchase"
+    },
+    "gregorykent1322@outlook.com": {
+      "email": "gregorykent1322@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:08:45Z",
+      "reason": "HTTP 400: registration_disallowed",
+      "service_id": "tok_bed5d044a8ccb0a0a15c028181ccbbbc",
+      "token": "tok_bed5d044a8ccb0a0a15c028181ccbbbc",
+      "purchase_id": "1507949",
+      "source": "reuse_purchase"
+    },
+    "sacf8964@outlook.com": {
+      "email": "sacf8964@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:14:05Z",
+      "reason": "HTTP 400: registration_disallowed",
+      "service_id": "tok_437ec6fd55a3437e315ac3086eb94607",
+      "token": "tok_437ec6fd55a3437e315ac3086eb94607",
+      "purchase_id": "1507855",
+      "source": "reuse_purchase"
+    },
+    "jonesdanielle5773@outlook.com": {
+      "email": "jonesdanielle5773@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:18:57Z",
+      "reason": "HTTP 400: registration_disallowed",
+      "service_id": "tok_6f2aa69454bfb5ec96f5354bd8b5e103",
+      "token": "tok_6f2aa69454bfb5ec96f5354bd8b5e103",
+      "purchase_id": "1507524",
+      "source": "reuse_purchase"
+    },
+    "michaelballard5167@outlook.jp": {
+      "email": "michaelballard5167@outlook.jp",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:21:59Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_d36f290bf63d8ccd21acdaf6979f5449",
+      "token": "tok_d36f290bf63d8ccd21acdaf6979f5449",
+      "purchase_id": "1640078",
+      "source": "new_purchase"
+    },
+    "ericaflores3395fj47@outlook.com": {
+      "email": "ericaflores3395fj47@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:24:27Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_76c222843cb385d4d39f87925c14a2ab",
+      "token": "tok_76c222843cb385d4d39f87925c14a2ab",
+      "purchase_id": "1640159",
+      "source": "new_purchase"
+    },
+    "staceyrobertsru@outlook.com": {
+      "email": "staceyrobertsru@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:29:36Z",
+      "reason": "提交注册表单失败: prewarm 密码直连分支验证码校验失败；send_otp=200, detail=-",
+      "service_id": "tok_2c03f7c66f30557867225187795e6359",
+      "token": "tok_2c03f7c66f30557867225187795e6359",
+      "purchase_id": "1640207",
+      "source": "new_purchase"
+    },
+    "rickymclaughlin4222@outlook.jp": {
+      "email": "rickymclaughlin4222@outlook.jp",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T12:42:26Z",
+      "reason": "重新登录提交邮箱失败: HTTP 429: <html>\n  <head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <style global>\n      body {\n        font-family: Arial, Helvetica, sans-serif;\n      }\n      .container {",
+      "service_id": "tok_da7d1cc80914a6de5806820a152b6092",
+      "token": "tok_da7d1cc80914a6de5806820a152b6092",
+      "purchase_id": "1640593",
+      "source": "new_purchase"
+    }
+  }
+}

@@ -26,10 +26,18 @@ def _load_luckmail_client_class():
     """
     兼容两种来源：
     1) 环境已安装 luckmail 包
-    2) 本地 vendored 目录（优先 codex-console/luckmail，其次 ../tools/luckmail）
+    2) 仓库内 aar.core.luckmail
+    3) 本地 vendored 目录（优先 codex-console/luckmail，其次 ../tools/luckmail）
     """
     try:
         from luckmail import LuckMailClient  # type: ignore
+
+        return LuckMailClient
+    except Exception:
+        pass
+
+    try:
+        from aar.core.luckmail import LuckMailClient  # type: ignore
 
         return LuckMailClient
     except Exception:
@@ -109,6 +117,8 @@ class LuckMailService(BaseEmailService):
             self.client = client_cls(
                 base_url=self.config["base_url"],
                 api_key=self.config["api_key"],
+                timeout=float(self.config.get("timeout") or 30),
+                proxy_url=self.config.get("proxy_url"),
             )
         except Exception as exc:
             raise ValueError(f"初始化 LuckMail 客户端失败: {exc}")
@@ -201,12 +211,19 @@ class LuckMailService(BaseEmailService):
         text = str(reason or "").strip().lower()
         if not text:
             return False
+        non_resumable_keywords = (
+            "registration_disallowed",
+            "cannot create your account with the given information",
+            "创建用户账户失败",
+            "创建账号失败",
+        )
+        if any(k in text for k in non_resumable_keywords):
+            return False
         keywords = (
             "该邮箱已存在 openai",
             "邮箱已存在 openai",
             "user_already_exists",
             "already exists",
-            "创建用户账户失败",
         )
         return any(k in text for k in keywords)
 

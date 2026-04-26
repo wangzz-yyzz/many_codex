@@ -26,7 +26,7 @@ from .auth import (
 from .routes import api_router
 from .routes.websocket import router as ws_router
 from .scheduler import scheduled_registration_service
-from .task_manager import task_manager
+from .task_manager import task_manager, shutdown_task_executor
 
 logger = logging.getLogger(__name__)
 auto_registration_coordinator = None
@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
         from ..database.init_db import initialize_database
         from .auto_quick_refresh_scheduler import auto_quick_refresh_scheduler
         from .routes.registration import run_auto_registration_batch
+        from .routes.selfcheck import shutdown_selfcheck_executor
         from .selfcheck_scheduler import selfcheck_scheduler
 
         try:
@@ -148,6 +149,10 @@ def create_app() -> FastAPI:
                 await auto_registration_coordinator.stop()
                 register_auto_registration_coordinator(None)
                 auto_registration_coordinator = None
+
+            # 关闭全局线程池，避免 Ctrl+C 后主进程被非守护线程阻塞。
+            shutdown_selfcheck_executor(wait=False)
+            shutdown_task_executor(wait=False)
 
             logger.info("Application stopped")
 

@@ -58,7 +58,7 @@ class RegistrationSettings(BaseModel):
     auto_enabled: bool = False
     auto_check_interval: int = 60
     auto_min_ready_auth_files: int = 1
-    auto_email_service_type: str = "tempmail"
+    auto_email_service_type: str = "catchall_pop3"
     auto_email_service_id: int = 0
     auto_proxy: Optional[str] = None
     auto_interval_min: int = 5
@@ -361,9 +361,7 @@ async def update_registration_settings(request: RegistrationSettings):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="自动注册邮箱服务类型无效") from exc
 
-    normalized_auto_email_service_type = (
-        "imap_mail" if request.auto_email_service_type == "catchall_imap" else request.auto_email_service_type
-    )
+    normalized_auto_email_service_type = request.auto_email_service_type
 
     if request.auto_interval_min < 0 or request.auto_interval_max < request.auto_interval_min:
         raise HTTPException(status_code=400, detail="自动注册间隔时间参数无效")
@@ -387,9 +385,11 @@ async def update_registration_settings(request: RegistrationSettings):
             email_service = crud.get_email_service_by_id(db, request.auto_email_service_id)
             if not email_service or not email_service.enabled:
                 raise HTTPException(status_code=400, detail="自动注册选择的邮箱服务不存在或已禁用")
-            normalized_service_type = (
-                "imap_mail" if email_service.service_type == "catchall_imap" else email_service.service_type
-            )
+            normalized_service_type = email_service.service_type
+            if normalized_auto_email_service_type in {"catchall_imap", "catchall_pop3"} and normalized_service_type == "imap_mail":
+                normalized_service_type = "catchall_imap"
+                if normalized_auto_email_service_type == "catchall_pop3":
+                    normalized_service_type = "catchall_pop3"
             if normalized_service_type != normalized_auto_email_service_type:
                 raise HTTPException(status_code=400, detail="自动注册邮箱服务类型与指定服务不匹配")
 

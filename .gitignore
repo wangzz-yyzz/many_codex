@@ -19,6 +19,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.github/
 
 # Virtual Environment
 .venv/
@@ -35,17 +36,18 @@ uv.lock
 *~
 
 # Data and Logs
-data/
+# data/
 logs/
 *.db
 *.sqlite
 *.sqlite3
+artifacts/
 
 # Token files
 token_*.json
 
 # Environment
-.env
+# .env
 .env.local
 *.local
 

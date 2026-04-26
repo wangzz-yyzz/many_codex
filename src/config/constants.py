@@ -61,6 +61,8 @@ class EmailServiceType(str, Enum):
     LUCKMAIL = "luckmail"
     FREEMAIL = "freemail"
     IMAP_MAIL = "imap_mail"
+    CATCHALL_POP3 = "catchall_pop3"
+    CATCHALL_IMAP = "catchall_imap"
     CLOUDMAIL = "cloudmail"
 
 
@@ -214,7 +216,29 @@ EMAIL_SERVICE_DEFAULTS = {
         "password": "",
         "timeout": 30,
         "max_retries": 3,
-    }
+    },
+    "catchall_pop3": {
+        "pop_host": "pop.163.com",
+        "pop_port": 995,
+        "pop_use_ssl": True,
+        "email": "",
+        "password": "",
+        "catchall_domain": "wzz28043.qzz.io",
+        "local_part_length": 10,
+        "timeout": 30,
+        "max_retries": 3,
+    },
+    "catchall_imap": {
+        "host": "",
+        "port": 993,
+        "use_ssl": True,
+        "email": "",
+        "password": "",
+        "catchall_domain": "wzz28043.qzz.io",
+        "local_part_length": 10,
+        "timeout": 30,
+        "max_retries": 3,
+    },
 }
 
 # ============================================================================
@@ -265,19 +289,26 @@ FIRST_NAMES = [
     "Grace", "Lily", "Chloe", "Zoey", "Nora", "Aria", "Hazel", "Aurora", "Stella", "Ivy"
 ]
 
+LAST_NAMES = [
+    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
+    "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Martin", "Clark", "Lewis",
+    "Walker", "Hall", "Allen", "Young", "King", "Wright", "Scott", "Green",
+]
+
 def generate_random_user_info() -> dict:
     """
     生成随机用户信息
 
     Returns:
-        包含 name 和 birthdate 的字典
+        包含自然英文全名、姓名拆分和 birthdate 的字典
     """
-    # 随机选择名字
-    name = random.choice(FIRST_NAMES)
+    first_name = random.choice(FIRST_NAMES)
+    last_name = random.choice(LAST_NAMES)
+    name = f"{first_name} {last_name}"
 
-    # 生成随机生日（18-45岁）
+    # 对齐 anyauto/aar 的资料风格，避免过年轻画像触发额外拒绝。
     current_year = datetime.now().year
-    birth_year = random.randint(current_year - 45, current_year - 18)
+    birth_year = random.randint(current_year - 45, current_year - 20)
     birth_month = random.randint(1, 12)
     # 根据月份确定天数
     if birth_month in [1, 3, 5, 7, 8, 10, 12]:
@@ -292,6 +323,8 @@ def generate_random_user_info() -> dict:
 
     return {
         "name": name,
+        "first_name": first_name,
+        "last_name": last_name,
         "birthdate": birthdate
     }
 

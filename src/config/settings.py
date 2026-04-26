@@ -336,7 +336,7 @@ SETTING_DEFINITIONS: Dict[str, SettingDefinition] = {
     ),
     "registration_auto_email_service_type": SettingDefinition(
         db_key="registration.auto.email_service_type",
-        default_value="tempmail",
+        default_value="catchall_pop3",
         category=SettingCategory.REGISTRATION,
         description="自动注册使用的邮箱服务类型"
     ),
@@ -384,7 +384,7 @@ SETTING_DEFINITIONS: Dict[str, SettingDefinition] = {
     ),
     "email_service_priority": SettingDefinition(
         db_key="email.service_priority",
-        default_value={"tempmail": 0, "yyds_mail": 1, "outlook": 2, "moe_mail": 3},
+        default_value={"catchall_pop3": 0, "catchall_imap": 1, "luckmail": 2, "tempmail": 3, "yyds_mail": 4, "outlook": 5, "moe_mail": 6},
         category=SettingCategory.EMAIL,
         description="邮箱服务优先级"
     ),
@@ -878,7 +878,7 @@ class Settings(BaseModel):
     registration_auto_enabled: bool = False
     registration_auto_check_interval: int = 60
     registration_auto_min_ready_auth_files: int = 1
-    registration_auto_email_service_type: str = "tempmail"
+    registration_auto_email_service_type: str = "catchall_pop3"
     registration_auto_email_service_id: int = 0
     registration_auto_proxy: str = ""
     registration_auto_interval_min: int = 5
@@ -888,7 +888,7 @@ class Settings(BaseModel):
     registration_auto_cpa_service_id: int = 0
 
     # 邮箱服务配置
-    email_service_priority: Dict[str, int] = {"tempmail": 0, "yyds_mail": 1, "outlook": 2, "moe_mail": 3}
+    email_service_priority: Dict[str, int] = {"catchall_pop3": 0, "catchall_imap": 1, "luckmail": 2, "tempmail": 3, "yyds_mail": 4, "outlook": 5, "moe_mail": 6}
 
     # Tempmail.lol 配置
     tempmail_base_url: str = "https://api.tempmail.lol/v2"

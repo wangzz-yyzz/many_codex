@@ -9,6 +9,7 @@ import email
 import re
 import time
 import logging
+import ast
 from email.header import decode_header
 from typing import Any, Dict, Optional
 
@@ -52,6 +53,65 @@ class ImapMailService(BaseEmailService):
             mail.starttls()
         mail.login(self.email_addr, self.password)
         return mail
+
+    def _decode_mailbox_name(self, raw_line) -> str:
+        text = raw_line.decode(errors="replace") if isinstance(raw_line, bytes) else str(raw_line)
+        match = re.search(r'\"([^\"]+)\"$', text)
+        mailbox = match.group(1) if match else text.rsplit(" ", 1)[-1]
+        mailbox = mailbox.strip('"')
+        if mailbox.startswith("&"):
+            try:
+                mailbox = mailbox.encode("ascii").decode("imap4-utf-7")
+            except Exception:
+                pass
+        return mailbox
+
+    def _list_mailboxes(self, mail: imaplib.IMAP4) -> list[str]:
+        status, data = mail.list()
+        if status != "OK" or not data:
+            return []
+        decoded = []
+        for item in data:
+            if not item:
+                continue
+            raw_text = item.decode(errors="replace") if isinstance(item, bytes) else str(item)
+            mailbox = self._decode_mailbox_name(item)
+            logger.info(f"IMAP LIST: raw={raw_text} -> mailbox={mailbox}")
+            decoded.append(mailbox)
+        return decoded
+
+    def _select_mailbox(self, mail: imaplib.IMAP4) -> Optional[str]:
+        candidates = ["INBOX", "Inbox", "inbox"]
+        candidates.extend(self._list_mailboxes(mail))
+
+        seen = set()
+        ordered = []
+        for item in candidates:
+            name = str(item or "").strip()
+            if not name:
+                continue
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(name)
+
+        last_status = ""
+        for mailbox in ordered:
+            try:
+                status, _ = mail.select(mailbox)
+                logger.info(f"IMAP 尝试选择邮箱目录: {mailbox} -> {status}")
+                last_status = str(status or "")
+                if status == "OK":
+                    return mailbox
+            except Exception as e:
+                logger.debug(f"IMAP 选择邮箱目录失败: {mailbox} -> {e}")
+
+        logger.warning(
+            "IMAP 未找到可用邮箱目录: "
+            f"host={self.host}, email={self.email_addr}, candidates={ordered}, last_status={last_status or '-'}"
+        )
+        return None
 
     def _decode_str(self, value) -> str:
         """解码邮件头部字段"""
@@ -129,7 +189,11 @@ class ImapMailService(BaseEmailService):
 
         try:
             mail = self._connect()
-            mail.select("INBOX")
+            selected_mailbox = self._select_mailbox(mail)
+            if not selected_mailbox:
+                self.update_status(False, EmailServiceError("未找到可用 IMAP 邮箱目录"))
+                return None
+            logger.info(f"IMAP 已选择邮箱目录: {selected_mailbox}")
 
             while time.time() - start_time < timeout:
                 try:
@@ -173,7 +237,7 @@ class ImapMailService(BaseEmailService):
                     logger.debug(f"IMAP 搜索邮件失败: {e}")
                     # 尝试重新连接
                     try:
-                        mail.select("INBOX")
+                        self._select_mailbox(mail)
                     except Exception:
                         pass
 
@@ -196,8 +260,8 @@ class ImapMailService(BaseEmailService):
         mail = None
         try:
             mail = self._connect()
-            status, _ = mail.select("INBOX")
-            return status == "OK"
+            selected_mailbox = self._select_mailbox(mail)
+            return bool(selected_mailbox)
         except Exception as e:
             logger.warning(f"IMAP 健康检查失败: {e}")
             return False

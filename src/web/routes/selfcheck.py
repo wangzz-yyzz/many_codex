@@ -33,6 +33,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _selfcheck_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="selfcheck")
+_selfcheck_executor_shutdown = False
+
+
+def shutdown_selfcheck_executor(wait: bool = False) -> None:
+    """关闭自检线程池，避免应用退出时阻塞。"""
+    global _selfcheck_executor_shutdown
+    if _selfcheck_executor_shutdown:
+        return
+    try:
+        _selfcheck_executor.shutdown(wait=wait, cancel_futures=True)
+        logger.info("系统自检线程池已关闭")
+    except Exception as exc:
+        logger.warning("关闭系统自检线程池失败: %s", exc)
+    finally:
+        _selfcheck_executor_shutdown = True
 
 
 class StartSelfCheckRequest(BaseModel):

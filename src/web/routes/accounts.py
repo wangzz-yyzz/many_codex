@@ -2481,6 +2481,8 @@ def _build_inbox_config(db, service_type, email: str) -> dict:
         EST.DUCK_MAIL: "duck_mail",
         EST.FREEMAIL: "freemail",
         EST.IMAP_MAIL: "imap_mail",
+        EST.CATCHALL_POP3: "catchall_pop3",
+        EST.CATCHALL_IMAP: "catchall_imap",
         EST.OUTLOOK: "outlook",
         EST.LUCKMAIL: "luckmail",
     }

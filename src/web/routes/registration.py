@@ -1,4 +1,4 @@
-﻿"""
+"""
 注册任务 API 路由
 """
 
@@ -325,6 +325,13 @@ def _normalize_email_service_config(
     elif service_type == EmailServiceType.YYDS_MAIL:
         if 'domain' in normalized and 'default_domain' not in normalized:
             normalized['default_domain'] = normalized.pop('domain')
+    elif service_type in (EmailServiceType.CATCHALL_POP3, EmailServiceType.CATCHALL_IMAP):
+        if 'domain' in normalized and 'catchall_domain' not in normalized:
+            normalized['catchall_domain'] = normalized.pop('domain')
+        if 'default_domain' in normalized and 'catchall_domain' not in normalized:
+            normalized['catchall_domain'] = normalized.pop('default_domain')
+        if 'pop3_host' in normalized and 'pop_host' not in normalized:
+            normalized['pop_host'] = normalized.pop('pop3_host')
     elif service_type in (EmailServiceType.TEMP_MAIL, EmailServiceType.CLOUDMAIL, EmailServiceType.FREEMAIL):
         if 'default_domain' in normalized and 'domain' not in normalized:
             normalized['domain'] = normalized.pop('default_domain')
@@ -576,6 +583,86 @@ def _run_sync_registration_task(task_uuid: str, email_service_type: str, proxy: 
                         logger.info(f"使用数据库 IMAP 邮箱服务: {db_service.name}")
                     else:
                         raise ValueError("没有可用的 IMAP 邮箱服务，请先在邮箱服务中添加")
+                elif service_type == EmailServiceType.CATCHALL_POP3:
+                    from ...database.models import EmailService as EmailServiceModel
+
+                    db_service = db.query(EmailServiceModel).filter(
+                        EmailServiceModel.service_type == "catchall_pop3",
+                        EmailServiceModel.enabled == True
+                    ).order_by(EmailServiceModel.priority.asc()).first()
+
+                    if db_service and db_service.config:
+                        config = _normalize_email_service_config(service_type, db_service.config, actual_proxy_url)
+                        crud.update_registration_task(db, task_uuid, email_service_id=db_service.id)
+                        logger.info(f"使用数据库 Catch-all POP3 邮箱服务: {db_service.name}")
+                    else:
+                        fallback_imap = db.query(EmailServiceModel).filter(
+                            EmailServiceModel.service_type == "imap_mail",
+                            EmailServiceModel.enabled == True
+                        ).order_by(EmailServiceModel.priority.asc()).first()
+                        if fallback_imap and fallback_imap.config:
+                            fallback_cfg = dict(fallback_imap.config)
+                            fallback_host = str(fallback_cfg.get("host") or "").strip()
+                            config = _normalize_email_service_config(
+                                service_type,
+                                {
+                                    **fallback_cfg,
+                                    "pop_host": str(
+                                        fallback_cfg.get("pop_host")
+                                        or fallback_cfg.get("pop3_host")
+                                        or ("pop." + fallback_host[len("imap.") :] if fallback_host.startswith("imap.") else "")
+                                        or "pop.163.com"
+                                    ).strip(),
+                                    "pop_port": int(fallback_cfg.get("pop_port") or fallback_cfg.get("pop3_port") or 995),
+                                    "pop_use_ssl": bool(fallback_cfg.get("pop_use_ssl", True)),
+                                    "catchall_domain": str(
+                                        fallback_cfg.get("catchall_domain")
+                                        or fallback_cfg.get("default_domain")
+                                        or fallback_cfg.get("domain")
+                                        or "wzz28043.qzz.io"
+                                    ).strip(),
+                                },
+                                actual_proxy_url,
+                            )
+                            crud.update_registration_task(db, task_uuid, email_service_id=fallback_imap.id)
+                            logger.info(f"使用数据库 IMAP 服务按 Catch-all POP3 模式注册: {fallback_imap.name}")
+                        else:
+                            raise ValueError("没有可用的 Catch-all POP3 或 IMAP 邮箱服务，请先在邮箱服务中添加")
+                elif service_type == EmailServiceType.CATCHALL_IMAP:
+                    from ...database.models import EmailService as EmailServiceModel
+
+                    db_service = db.query(EmailServiceModel).filter(
+                        EmailServiceModel.service_type == "catchall_imap",
+                        EmailServiceModel.enabled == True
+                    ).order_by(EmailServiceModel.priority.asc()).first()
+
+                    if db_service and db_service.config:
+                        config = _normalize_email_service_config(service_type, db_service.config, actual_proxy_url)
+                        crud.update_registration_task(db, task_uuid, email_service_id=db_service.id)
+                        logger.info(f"使用数据库 Catch-all IMAP 邮箱服务: {db_service.name}")
+                    else:
+                        fallback_imap = db.query(EmailServiceModel).filter(
+                            EmailServiceModel.service_type == "imap_mail",
+                            EmailServiceModel.enabled == True
+                        ).order_by(EmailServiceModel.priority.asc()).first()
+                        if fallback_imap and fallback_imap.config:
+                            config = _normalize_email_service_config(
+                                service_type,
+                                {
+                                    **fallback_imap.config,
+                                    "catchall_domain": str(
+                                        fallback_imap.config.get("catchall_domain")
+                                        or fallback_imap.config.get("default_domain")
+                                        or fallback_imap.config.get("domain")
+                                        or "wzz28043.qzz.io"
+                                    ).strip(),
+                                },
+                                actual_proxy_url,
+                            )
+                            crud.update_registration_task(db, task_uuid, email_service_id=fallback_imap.id)
+                            logger.info(f"使用数据库 IMAP 服务按 Catch-all 模式注册: {fallback_imap.name}")
+                        else:
+                            raise ValueError("没有可用的 Catch-all IMAP 或 IMAP 邮箱服务，请先在邮箱服务中添加")
                 elif service_type == EmailServiceType.LUCKMAIL:
                     from ...database.models import EmailService as EmailServiceModel
 
@@ -1858,6 +1945,16 @@ async def get_available_email_services():
             "count": 0,
             "services": []
         },
+        "catchall_pop3": {
+            "available": False,
+            "count": 0,
+            "services": []
+        },
+        "catchall_imap": {
+            "available": False,
+            "count": 0,
+            "services": []
+        },
         "luckmail": {
             "available": False,
             "count": 0,
@@ -2037,6 +2134,75 @@ async def get_available_email_services():
 
         result["imap_mail"]["count"] = len(imap_mail_services)
         result["imap_mail"]["available"] = len(imap_mail_services) > 0
+
+        catchall_pop3_services = db.query(EmailServiceModel).filter(
+            EmailServiceModel.service_type == "catchall_pop3",
+            EmailServiceModel.enabled == True
+        ).order_by(EmailServiceModel.priority.asc()).all()
+
+        for service in catchall_pop3_services:
+            config = service.config or {}
+            result["catchall_pop3"]["services"].append({
+                "id": service.id,
+                "name": service.name,
+                "type": "catchall_pop3",
+                "email": config.get("email"),
+                "pop_host": config.get("pop_host") or config.get("pop3_host"),
+                "catchall_domain": config.get("catchall_domain"),
+                "priority": service.priority
+            })
+
+        if not catchall_pop3_services and imap_mail_services:
+            for service in imap_mail_services:
+                config = service.config or {}
+                host = str(config.get("host") or "").strip()
+                result["catchall_pop3"]["services"].append({
+                    "id": service.id,
+                    "name": f"{service.name} (Catch-all POP3)",
+                    "type": "catchall_pop3",
+                    "email": config.get("email"),
+                    "pop_host": config.get("pop_host") or config.get("pop3_host") or ("pop." + host[len("imap.") :] if host.startswith("imap.") else "pop.163.com"),
+                    "catchall_domain": config.get("catchall_domain") or "wzz28043.qzz.io",
+                    "priority": service.priority,
+                    "source_type": "imap_mail",
+                })
+
+        result["catchall_pop3"]["count"] = len(result["catchall_pop3"]["services"])
+        result["catchall_pop3"]["available"] = len(result["catchall_pop3"]["services"]) > 0
+
+        catchall_imap_services = db.query(EmailServiceModel).filter(
+            EmailServiceModel.service_type == "catchall_imap",
+            EmailServiceModel.enabled == True
+        ).order_by(EmailServiceModel.priority.asc()).all()
+
+        for service in catchall_imap_services:
+            config = service.config or {}
+            result["catchall_imap"]["services"].append({
+                "id": service.id,
+                "name": service.name,
+                "type": "catchall_imap",
+                "email": config.get("email"),
+                "host": config.get("host"),
+                "catchall_domain": config.get("catchall_domain"),
+                "priority": service.priority
+            })
+
+        if not catchall_imap_services and imap_mail_services:
+            for service in imap_mail_services:
+                config = service.config or {}
+                result["catchall_imap"]["services"].append({
+                    "id": service.id,
+                    "name": f"{service.name} (Catch-all)",
+                    "type": "catchall_imap",
+                    "email": config.get("email"),
+                    "host": config.get("host"),
+                    "catchall_domain": config.get("catchall_domain") or "wzz28043.qzz.io",
+                    "priority": service.priority,
+                    "source_type": "imap_mail",
+                })
+
+        result["catchall_imap"]["count"] = len(result["catchall_imap"]["services"])
+        result["catchall_imap"]["available"] = len(result["catchall_imap"]["services"]) > 0
 
         luckmail_services = db.query(EmailServiceModel).filter(
             EmailServiceModel.service_type == "luckmail",
