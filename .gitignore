@@ -36,7 +36,7 @@ uv.lock
 *~
 
 # Data and Logs
-# data/
+data/
 logs/
 *.sqlite
 *.sqlite3

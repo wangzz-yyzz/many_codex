@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-26T13:44:26Z",
-  "count": 33,
+  "updated_at": "2026-04-26T14:01:09Z",
+  "count": 34,
   "emails": {
     "dereklloyd4254fu@outlook.com": {
       "email": "dereklloyd4254fu@outlook.com",
@@ -330,6 +330,16 @@
       "service_id": "tok_90ce6bc49ac02b9a8bed4d149f95c710",
       "token": "tok_90ce6bc49ac02b9a8bed4d149f95c710",
       "purchase_id": "1642425",
+      "source": "new_purchase"
+    },
+    "josephrandall7975@outlook.com": {
+      "email": "josephrandall7975@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T14:01:09Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_a394b60388da2ab754c23498ef58960a",
+      "token": "tok_a394b60388da2ab754c23498ef58960a",
+      "purchase_id": "1642752",
       "source": "new_purchase"
     }
   }
