@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-26T12:42:26Z",
-  "count": 29,
+  "updated_at": "2026-04-26T13:44:26Z",
+  "count": 33,
   "emails": {
     "dereklloyd4254fu@outlook.com": {
       "email": "dereklloyd4254fu@outlook.com",
@@ -290,6 +290,46 @@
       "service_id": "tok_da7d1cc80914a6de5806820a152b6092",
       "token": "tok_da7d1cc80914a6de5806820a152b6092",
       "purchase_id": "1640593",
+      "source": "new_purchase"
+    },
+    "patricialevy4971@outlook.de": {
+      "email": "patricialevy4971@outlook.de",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T13:08:32Z",
+      "reason": "注册密码接口返回异常: Failed to create account. Please try again.",
+      "service_id": "tok_9ce32d682980c21517cdc156fa948cca",
+      "token": "tok_9ce32d682980c21517cdc156fa948cca",
+      "purchase_id": "1641658",
+      "source": "new_purchase"
+    },
+    "williejones4663@outlook.jp": {
+      "email": "williejones4663@outlook.jp",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T13:09:25Z",
+      "reason": "注册密码接口返回异常: Failed to create account. Please try again.",
+      "service_id": "tok_5bd9b62c8ead4e6c9f449817e5fbd9fe",
+      "token": "tok_5bd9b62c8ead4e6c9f449817e5fbd9fe",
+      "purchase_id": "1641684",
+      "source": "new_purchase"
+    },
+    "lauramoss2951@outlook.de": {
+      "email": "lauramoss2951@outlook.de",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T13:39:22Z",
+      "reason": "注册密码接口返回异常: Failed to create account. Please try again.",
+      "service_id": "tok_481db7e7a50dd544148116015fb63b64",
+      "token": "tok_481db7e7a50dd544148116015fb63b64",
+      "purchase_id": "1641787",
+      "source": "reuse_purchase"
+    },
+    "derekcooper9496@outlook.com": {
+      "email": "derekcooper9496@outlook.com",
+      "fail_count": 1,
+      "updated_at": "2026-04-26T13:44:26Z",
+      "reason": "命中 add-phone 分支，当前会话未拿到 workspace/callback/token",
+      "service_id": "tok_90ce6bc49ac02b9a8bed4d149f95c710",
+      "token": "tok_90ce6bc49ac02b9a8bed4d149f95c710",
+      "purchase_id": "1642425",
       "source": "new_purchase"
     }
   }

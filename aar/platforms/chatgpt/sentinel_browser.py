@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import uuid
 from pathlib import Path
@@ -50,6 +51,56 @@ def _quickjs_script_path() -> Path:
 def _resolve_node_binary() -> str:
     custom = os.getenv("OPENAI_SENTINEL_NODE_PATH", "").strip()
     return custom or "node"
+
+
+def _playwright_browser_roots() -> list[Path]:
+    roots: list[Path] = []
+
+    env_root = str(os.getenv("PLAYWRIGHT_BROWSERS_PATH") or "").strip()
+    if env_root and env_root != "0":
+        roots.append(Path(env_root))
+
+    try:
+        import playwright  # type: ignore
+
+        roots.append(
+            Path(playwright.__file__).resolve().parent
+            / "driver"
+            / "package"
+            / ".local-browsers"
+        )
+    except Exception:
+        pass
+
+    roots.append(Path.home() / ".cache" / "ms-playwright")
+
+    deduped: list[Path] = []
+    seen: set[str] = set()
+    for root in roots:
+        key = str(root.resolve()) if root.exists() else str(root)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(root)
+    return deduped
+
+
+def _resolve_linux_chromium_executable() -> Path | None:
+    if not sys.platform.startswith("linux"):
+        return None
+
+    patterns = (
+        "chromium-*/chrome-linux64/chrome",
+        "chromium-*/chrome-linux/chrome",
+    )
+    for root in _playwright_browser_roots():
+        if not root.is_dir():
+            continue
+        for pattern in patterns:
+            for candidate in sorted(root.glob(pattern)):
+                if candidate.is_file():
+                    return candidate
+    return None
 
 
 def _ensure_sdk_file(session: Any, timeout_ms: int) -> Path:
@@ -320,11 +371,25 @@ def get_sentinel_token_via_browser(
 
     launch_args: dict[str, Any] = {
         "headless": effective_headless,
+        "timeout": min(timeout_ms, 30000),
         "args": [
             "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
             "--disable-blink-features=AutomationControlled",
         ],
     }
+    if sys.platform.startswith("linux"):
+        launch_args["args"].extend(
+            [
+                "--disable-gpu",
+                "--disable-features=VizDisplayCompositor",
+            ]
+        )
+        chromium_exec = _resolve_linux_chromium_executable()
+        if effective_headless and chromium_exec is not None:
+            launch_args["executable_path"] = str(chromium_exec)
+            logger(f"Sentinel Browser Linux 无头使用完整 Chromium: {chromium_exec}")
     proxy_config = build_playwright_proxy_config(proxy)
     if proxy_config:
         launch_args["proxy"] = proxy_config
@@ -333,6 +398,7 @@ def get_sentinel_token_via_browser(
 
     with sync_playwright() as p:
         browser = p.chromium.launch(**launch_args)
+        logger("Sentinel Browser 浏览器已启动")
         try:
             context = browser.new_context(
                 viewport={"width": 1440, "height": 900},
@@ -362,6 +428,7 @@ def get_sentinel_token_via_browser(
                     pass
 
             page = context.new_page()
+            logger(f"Sentinel Browser 页面导航中: timeout={timeout_ms}ms")
             page.goto(target_url, wait_until="domcontentloaded", timeout=timeout_ms)
             page.wait_for_function(
                 "() => typeof window.SentinelSDK !== 'undefined' && typeof window.SentinelSDK.token === 'function'",
