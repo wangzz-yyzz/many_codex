@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import threading
 import time
@@ -12,6 +13,89 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+VENV_PYTHON = ROOT / ".venv" / "bin" / "python"
+
+
+def _load_project_env() -> None:
+    """Load .env from the project root with low precedence."""
+    env_path = ROOT / ".env"
+    if not env_path.exists():
+        return
+    with env_path.open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+def _detect_project_playwright_browsers() -> Path | None:
+    candidates = [
+        ROOT / ".venv" / "Lib" / "site-packages" / "playwright" / "driver" / "package" / ".local-browsers",
+    ]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+
+    lib_root = ROOT / ".venv" / "lib"
+    if lib_root.is_dir():
+        for candidate in sorted(lib_root.glob("python*/site-packages/playwright/driver/package/.local-browsers")):
+            if candidate.is_dir():
+                return candidate
+    return None
+
+
+def _prepare_runtime_env() -> None:
+    _load_project_env()
+
+    data_dir = ROOT / "data"
+    logs_dir = ROOT / "logs"
+    data_dir.mkdir(exist_ok=True)
+    logs_dir.mkdir(exist_ok=True)
+
+    os.environ.setdefault("APP_DATA_DIR", str(data_dir))
+    os.environ.setdefault("APP_LOGS_DIR", str(logs_dir))
+
+    if sys.platform.startswith("linux") and not str(os.environ.get("DISPLAY") or "").strip():
+        os.environ["PLAYWRIGHT_HEADLESS"] = "true"
+        os.environ["REGISTER_HEADLESS"] = "true"
+
+    local_browsers = _detect_project_playwright_browsers()
+    if local_browsers is not None:
+        os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(local_browsers))
+
+
+def _maybe_reexec_into_project_venv() -> None:
+    """Re-run the script inside the project virtualenv when available."""
+    if os.environ.get("RUN_REG_VENV_REEXEC") == "1":
+        return
+    if not VENV_PYTHON.exists():
+        return
+
+    try:
+        current_prefix = Path(sys.prefix).resolve()
+    except Exception:
+        current_prefix = Path(sys.prefix)
+
+    try:
+        project_venv = (ROOT / ".venv").resolve()
+    except Exception:
+        project_venv = ROOT / ".venv"
+
+    if current_prefix == project_venv:
+        return
+
+    os.environ["RUN_REG_VENV_REEXEC"] = "1"
+    os.execv(str(VENV_PYTHON), [str(VENV_PYTHON), __file__, *sys.argv[1:]])
+
+
+_prepare_runtime_env()
+_maybe_reexec_into_project_venv()
+
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
